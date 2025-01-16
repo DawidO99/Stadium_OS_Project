@@ -12,30 +12,30 @@ SRCS = $(wildcard $(SRC_DIR)/*.cpp $(SRC_DIR)/utils/*.cpp)
 OBJS = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SRCS))
 
 # Executables
-EXECUTABLES = manager technician fan main
+EXECUTABLES = main manager technician fan
 
 # Default target
 all: $(EXECUTABLES)
 
-# Rule for building object files
+# Rule to build object files
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -c $< -o $@
 
 # Rules for executables
-manager: $(BUILD_DIR)/manager.o $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $(BUILD_DIR)/manager.o
+main: $(BUILD_DIR)/main.o $(BUILD_DIR)/utils/ipc_utils.o
+	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $^
 
-technician: $(BUILD_DIR)/technician.o $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $(BUILD_DIR)/technician.o
+manager: $(BUILD_DIR)/manager.o $(BUILD_DIR)/utils/ipc_utils.o
+	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $^
 
-fan: $(BUILD_DIR)/fan.o $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $(BUILD_DIR)/fan.o
+technician: $(BUILD_DIR)/technician.o $(BUILD_DIR)/utils/ipc_utils.o
+	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $^
 
-main: $(BUILD_DIR)/main.o $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $(BUILD_DIR)/main.o
+fan: $(BUILD_DIR)/fan.o $(BUILD_DIR)/utils/ipc_utils.o
+	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $^
 
-# Clean
+# Clean up
 clean:
 	rm -rf $(BUILD_DIR)/*.o $(BUILD_DIR)/$(EXECUTABLES)
 
