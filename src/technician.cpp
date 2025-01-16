@@ -12,38 +12,25 @@
 int sem_id;
 int shm_id;
 
-// Handler sygnałów
-void signal_handler(int sig)
-{
-    if (sig == SIGUSR1)
-    {
-        std::cout << "[Technician] Received signal: SIGUSR1 (Stop fans entering).\n";
-        semaphore_wait(sem_id); // Wstrzymanie dostępu do stadionu
-    }
-    else if (sig == SIGUSR2)
-    {
-        std::cout << "[Technician] Received signal: SIGUSR2 (Resume fans entering).\n";
-        semaphore_signal(sem_id); // Wznowienie dostępu do stadionu
-    }
-    else if (sig == SIGTERM)
-    {
-        std::cout << "[Technician] Received signal: SIGTERM (Evacuation).\n";
-        // exit()? tu chyba zakonczymy dzialanie calego programu
-    }
-}
+void terminate_fan_processes(); // wysylanie sygnalu do wszystkich procesow
+void signal_handler(int sig);   // obsluga sygnalow
 
 int main()
 {
-    struct sigaction sa;            // struct do sygnalow
-    sa.sa_handler = signal_handler; // wskaznik na funkcje signal_handler
+    struct sigaction sa;
+    sa.sa_handler = signal_handler; // Funkcja obsługująca sygnały
     sa.sa_flags = 0;
-    sigemptyset(&sa.sa_mask); // inicjuje maske
+    sigemptyset(&sa.sa_mask); // Blokowanie innych sygnałów podczas obsługi
 
-    if (sigaction(SIGUSR1, &sa, NULL) == -1 || sigaction(SIGUSR2, &sa, NULL) == -1 || sigaction(SIGTERM, &sa, NULL) == -1)
-    {
-        perror("[Technician] Failed to set signal handlers");
-        return 1;
-    }
+    if (sigaction(SIGUSR1, &sa, NULL) == -1)
+        perror("[Technician] Failed to set SIGUSR1 handler");
+
+    if (sigaction(SIGUSR2, &sa, NULL) == -1)
+        perror("[Technician] Failed to set SIGUSR2 handler");
+
+    if (sigaction(SIGTERM, &sa, NULL) == -1)
+        perror("[Technician] Failed to set SIGTERM handler");
+
     std::cout << "[Technician] Initializing resources...\n";
 
     // Tworzenie semafora
@@ -74,21 +61,65 @@ int main()
     }
 
     // Inicjalizacja danych w pamięci współdzielonej
-    int *stadium_data = static_cast<int *>(shm_ptr); // rzutujemy na int-a, zeby uzywac pamieci wspoldzielonej jako tablicy int-ow
-    stadium_data[0] = 0;                             // Liczba kibiców na stadionie
+    int *stadium_data = static_cast<int *>(shm_ptr);
+    stadium_data[0] = 0; // Liczba kibiców na stadionie
+    for (int i = 1; i <= MAX_FANS; i++)
+    {
+        stadium_data[i] = 0; // Inicjalizacja przestrzeni dla PID-ów kibiców
+    }
 
     std::cout << "[Technician] Resources initialized successfully.\n";
 
     while (true)
     {
-        pause();
-    } // Czeka na sygnały
+        pause(); // Oczekiwanie na sygnały
+    }
 
-    // Czyszczenie zasobów
+    // Czyszczenie zasobów (to się nie wykona, bo program kończy się w handlerze SIGTERM)
     detach_shared_memory(shm_ptr);
     remove_shared_memory(shm_id);
     remove_semaphore(sem_id);
 
-    std::cout << "[Technician] Resources cleaned up. Exiting.\n";
     return 0;
+}
+
+
+void terminate_fan_processes()
+{
+    std::cout << "[Technician] Sending SIGTERM to all fan processes...\n";
+    for (int i = 0; i < MAX_FANS; i++)
+    {
+        int fan_pid = static_cast<int *>(attach_shared_memory(shm_id))[i + 1];
+        if (fan_pid > 0)
+            kill(fan_pid, SIGTERM);
+    }
+}
+
+// Handler sygnałów
+void signal_handler(int sig)
+{
+    if (sig == SIGUSR1)
+    {
+        std::cout << "[Technician] Received signal: SIGUSR1 (Stop fans entering).\n";
+        semaphore_wait(sem_id); // Wstrzymanie dostępu do stadionu
+    }
+    else if (sig == SIGUSR2)
+    {
+        std::cout << "[Technician] Received signal: SIGUSR2 (Resume fans entering).\n";
+        semaphore_signal(sem_id); // Wznowienie dostępu do stadionu
+    }
+    else if (sig == SIGTERM)
+    {
+        std::cout << "[Technician] Received signal: SIGTERM (Evacuation).\n";
+        terminate_fan_processes(); // Wysyłanie SIGTERM do kibiców
+        int *stadium_data = static_cast<int *>(attach_shared_memory(shm_id));
+        stadium_data[0] = 0; // Wyzerowanie liczby kibiców
+        detach_shared_memory(stadium_data);
+
+        remove_semaphore(sem_id);
+        remove_shared_memory(shm_id);
+
+        std::cout << "[Technician] Resources cleaned up. Exiting.\n";
+        exit(0);
+    }
 }
