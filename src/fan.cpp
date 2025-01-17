@@ -4,6 +4,7 @@
 #include <iostream>
 #include <csignal>
 #include <cstdlib>
+#include <thread>
 
 #define SHM_KEY 0x1235 // Klucz pamięci współdzielonej
 #define SEM_KEY 0x1234 // Klucz semafora
@@ -12,14 +13,31 @@ int sem_id;
 int shm_id;
 int *stadium_data;
 
-void cleanup_and_exit(int sig); // Obsluga sygnalu SIGTERM
-
-int main()
+struct fan_attr
 {
+    int PID = -1;            // PID procesu kibica
+    int age = 18;            // Wiek (domyślnie pełnoletni)
+    bool has_weapon = false; // Czy kibic ma broń
+    bool is_vip = false;     // Czy jest VIP-em
+    int team = -1;           // Drużyna kibica (0 lub 1)
+    int frustration = 0;     // Poziom frustracji (0-5)
+};
+
+void cleanup_and_exit(int sig);                                        // Funkcja obsługująca SIGTERM
+bool assign_to_station(int *stadium_data, int team, int space_needed); // kolejka do stanowiska
+
+int main(int argc, char *argv[])
+{
+    if (argc < 5)
+    {
+        std::cerr << "[Fan] Invalid arguments. Expected: age team is_vip has_weapon\n";
+        return 1;
+    }
+
     struct sigaction sa;
-    sa.sa_handler = cleanup_and_exit; // Funkcja obsługująca sygnały
+    sa.sa_handler = cleanup_and_exit;
     sa.sa_flags = 0;
-    sigemptyset(&sa.sa_mask); // Blokowanie innych sygnałów podczas obsługi
+    sigemptyset(&sa.sa_mask);
 
     if (sigaction(SIGTERM, &sa, NULL) == -1)
     {
@@ -50,14 +68,72 @@ int main()
 
     std::cout << "[Fan] Connected to shared resources.\n";
 
+    fan_attr attributes;
+    attributes.PID = getpid();
+    attributes.age = std::stoi(argv[1]);
+    attributes.team = std::stoi(argv[2]);
+    attributes.is_vip = std::stoi(argv[3]);
+    attributes.has_weapon = std::stoi(argv[4]);
+
+    std::cout << "[Fan] Initialized with - Age: " << attributes.age
+              << ", Team: " << attributes.team
+              << ", VIP: " << (attributes.is_vip ? "Yes" : "No")
+              << ", Weapon: " << (attributes.has_weapon ? "Yes" : "No") << "\n";
+
+    // Logika VIP
+    if (attributes.is_vip)
+    {
+        semaphore_wait(sem_id);
+        stadium_data[0]++;
+        std::cout << "[Fan] VIP entering stadium. Current fans: " << stadium_data[0] << "\n";
+        semaphore_signal(sem_id);
+
+        while (true)
+        {
+            pause();
+        }
+    }
+
+    if (attributes.has_weapon)
+    {
+        std::cout << "[Fan] Security detected a weapon. Access denied.\n";
+        detach_shared_memory(stadium_data);
+        exit(0); // Proces kończy się
+    }
+
+    // Logika dzieci
+    if (attributes.age < 15)
+    {
+        std::cout << "[Fan] Child detected. Creating adult process and child thread.\n";
+        attributes.age = 18;
+
+        // Tworzymy wątek dziecka
+        std::thread child_thread([]()
+                                 { std::cout << "[Child] Child is enjoying the match.\n"; });
+
+        semaphore_wait(sem_id);
+        stadium_data[0] += 2;
+        std::cout << "[Fan + Child] Entering stadium. Current fans: " << stadium_data[0] << "\n";
+        semaphore_signal(sem_id);
+
+        // Dołączamy wątek (czekamy na jego zakończenie)
+        child_thread.join();
+
+        while (true)
+        {
+            pause();
+        }
+    }
+
+    // Domyślna logika kibica
     semaphore_wait(sem_id);
     stadium_data[0]++;
-    std::cout << "[Fan] Entering stadium. Current fans: " << stadium_data[0] << "\n";
+    std::cout << "[Fan] Regular fan entering stadium. Current fans: " << stadium_data[0] << "\n";
     semaphore_signal(sem_id);
 
     while (true)
     {
-        pause(); // Oczekiwanie na sygnały
+        pause();
     }
 
     return 0;
@@ -66,6 +142,7 @@ int main()
 void cleanup_and_exit(int sig)
 {
     std::cout << "[Fan] Received SIGTERM. Exiting...\n";
+
     if (stadium_data)
     {
         stadium_data[0]--;
@@ -73,4 +150,21 @@ void cleanup_and_exit(int sig)
     detach_shared_memory(stadium_data);
 
     exit(0);
+}
+
+bool assign_to_station(int *stadium_data, int team, int space_needed)
+{
+    for (int i = 1; i <= 3; i++)
+    {                                                                         // Iterujemy po stanowiskach 1-3
+        int idx = i - 1;                                                      // Indeks w pamięci współdzielonej
+        if ((stadium_data[4 + idx] == -1 || stadium_data[4 + idx] == team) && // Drużyna pasuje
+            stadium_data[idx] + space_needed <= 3)
+        { // Jest miejsce
+
+            stadium_data[4 + idx] = team;      // Przypisujemy drużynę do stanowiska
+            stadium_data[idx] += space_needed; // Zajmujemy miejsce
+            return true;
+        }
+    }
+    return false; // Brak dostępnego stanowiska
 }
