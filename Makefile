@@ -12,7 +12,7 @@ SRCS = $(wildcard $(SRC_DIR)/*.cpp $(SRC_DIR)/utils/*.cpp)
 OBJS = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SRCS))
 
 # Executables
-EXECUTABLES = main manager technician fan
+EXECUTABLES = manager technician fan
 
 # Default target
 all: $(EXECUTABLES)
