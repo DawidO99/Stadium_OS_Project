@@ -10,8 +10,9 @@
 // Semafory
 int create_semaphore(key_t key, int initial_value);
 void remove_semaphore(int sem_id);
-void semaphore_wait(int sem_id);   // Procedura P - opuszczenie semafora (blokuje się, jeśli s==0) - "s--"
-void semaphore_signal(int sem_id); // Procedura V - podniesienie semafora (odblokowuje dostep) - "s++"
+void semaphore_wait(int sem_id);                // Procedura P - opuszczenie semafora (blokuje się, jeśli s==0) - "s--"
+void semaphore_signal(int sem_id);              // Procedura V - podniesienie semafora (odblokowuje dostep) - "s++"
+int reset_semaphore(int sem_id, int new_value); // Resetuje wartość semafora
 
 // Pamięć współdzielona
 int create_shared_memory(key_t key, size_t size);

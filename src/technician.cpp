@@ -1,4 +1,5 @@
 #include "../include/ipc_utils.h"
+#include "../include/constants.h"
 #include <signal.h>
 #include <unistd.h>
 #include <iostream>
@@ -6,9 +7,6 @@
 #include <csignal>
 #include <cstdlib>
 #include <ctime>
-
-#define SHM_SIZE 1024 // Rozmiar pamięci współdzielonej
-#define MAX_FANS 100  // Maksymalna liczba kibiców na stadionie
 
 // Zasoby IPC
 int sem_id;
@@ -23,11 +21,6 @@ int main()
 {
     srand(time(NULL));
     const char *fan_program_path = "./build/fan";
-
-    struct sigaction sa;
-    sa.sa_handler = signal_handler; // Funkcja obsługująca sygnały
-    sa.sa_flags = 0;
-    sigemptyset(&sa.sa_mask); // Blokowanie innych sygnałów podczas obsługi
 
     if (std::signal(SIGUSR1, signal_handler) == SIG_ERR)
         perror("[Technician] Failed to set SIGUSR1 handler");

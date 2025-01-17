@@ -45,6 +45,16 @@ void semaphore_signal(int sem_id)
     }
 }
 
+int reset_semaphore(int sem_id, int new_value)
+{
+    if (semctl(sem_id, 0, SETVAL, new_value) == -1)
+    {
+        perror("Failed to reset semaphore value");
+        return -1;
+    }
+    return 0;
+}
+
 // Pamięć współdzielona
 int create_shared_memory(key_t key, size_t size)
 {

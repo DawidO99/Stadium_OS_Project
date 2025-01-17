@@ -1,13 +1,11 @@
 #include "../include/ipc_utils.h"
+#include "../include/constants.h"
 #include <signal.h>
 #include <unistd.h>
 #include <iostream>
 #include <csignal>
 #include <cstdlib>
 #include <thread>
-
-#define SHM_KEY 0x1235 // Klucz pamięci współdzielonej
-#define SEM_KEY 0x1234 // Klucz semafora
 
 int sem_id;
 int shm_id;
@@ -23,8 +21,7 @@ struct fan_attr
     int frustration = 0;     // Poziom frustracji (0-5)
 };
 
-void cleanup_and_exit(int sig);                                        // Funkcja obsługująca SIGTERM
-bool assign_to_station(int *stadium_data, int team, int space_needed); // kolejka do stanowiska
+void cleanup_and_exit(int sig); // Funkcja obsługująca SIGTERM
 
 int main(int argc, char *argv[])
 {
@@ -34,12 +31,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    struct sigaction sa;
-    sa.sa_handler = cleanup_and_exit;
-    sa.sa_flags = 0;
-    sigemptyset(&sa.sa_mask);
-
-    if (sigaction(SIGTERM, &sa, NULL) == -1)
+    if (std::signal(SIGTERM, cleanup_and_exit) == SIG_ERR)
     {
         perror("[Fan] Failed to set SIGTERM handler");
         return 1;
@@ -150,21 +142,4 @@ void cleanup_and_exit(int sig)
     detach_shared_memory(stadium_data);
 
     exit(0);
-}
-
-bool assign_to_station(int *stadium_data, int team, int space_needed)
-{
-    for (int i = 1; i <= 3; i++)
-    {                                                                         // Iterujemy po stanowiskach 1-3
-        int idx = i - 1;                                                      // Indeks w pamięci współdzielonej
-        if ((stadium_data[4 + idx] == -1 || stadium_data[4 + idx] == team) && // Drużyna pasuje
-            stadium_data[idx] + space_needed <= 3)
-        { // Jest miejsce
-
-            stadium_data[4 + idx] = team;      // Przypisujemy drużynę do stanowiska
-            stadium_data[idx] += space_needed; // Zajmujemy miejsce
-            return true;
-        }
-    }
-    return false; // Brak dostępnego stanowiska
 }
