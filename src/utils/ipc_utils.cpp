@@ -5,18 +5,36 @@
 // Semafory
 int create_semaphore(key_t key, int initial_value)
 {
-    int sem_id = semget(key, 1, IPC_CREAT | 0600); // key, nsems, flg + minimalne prawa dostepu
+    // Próba utworzenia semafora
+    int sem_id = semget(key, 1, IPC_CREAT | IPC_EXCL | 0600); // key, nsems, flg + minimalne prawa
     if (sem_id == -1)
     {
-        perror("Failed to create semaphore");
-        return -1;
+        // Jeśli semafor już istnieje, otwórz go
+        if (errno == EEXIST)
+        {
+            sem_id = semget(key, 1, 0); // Otwórz istniejący semafor
+            if (sem_id == -1)
+            {
+                perror("Failed to open existing semaphore");
+                return -1;
+            }
+            return sem_id; // Zwróć ID istniejącego semafora
+        }
+        else
+        {
+            perror("Failed to create semaphore");
+            return -1;
+        }
     }
+
+    // Jeśli semafor został właśnie utworzony, ustaw jego wartość
     if (semctl(sem_id, 0, SETVAL, initial_value) == -1) // id, nsem, polecenie, wartosc
     {
         perror("Failed to initialize semaphore");
+        remove_semaphore(sem_id); // Usuń niedziałający semafor
         return -1;
     }
-    return sem_id;
+    return sem_id; // Zwróć ID semafora
 }
 
 void remove_semaphore(int sem_id)
@@ -45,14 +63,24 @@ void semaphore_signal(int sem_id)
     }
 }
 
-int reset_semaphore(int sem_id, int new_value)
+int semaphore_trywait(int sem_id)
 {
-    if (semctl(sem_id, 0, SETVAL, new_value) == -1)
+    struct sembuf op = {0, -1, IPC_NOWAIT}; // sem_num, sem_op, sem_flg, -1 bo dekrementacja i flaga non-blocking
+    int ret;
+    if (ret = semop(sem_id, &op, 1) == -1)
     {
-        perror("Failed to reset semaphore value");
-        return -1;
+        if (errno == EAGAIN)
+        {
+            fprintf(stderr, "Semaphore is unavailable (non-blocking trywait failed).\n");
+            return 0; // nie udalo sie od razu zajac semafora
+        }
+        else
+        {
+            perror("Failed to perform semaphore trywait");
+            return -1; // blad
+        }
     }
-    return 0;
+    return ret; // udalo sie zajac semafor i zmniejszyc wartosc
 }
 
 // Pamięć współdzielona

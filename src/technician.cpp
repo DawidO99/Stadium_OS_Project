@@ -7,10 +7,12 @@
 #include <csignal>
 #include <cstdlib>
 #include <ctime>
+#include <semaphore.h>
 
 // Zasoby IPC
-int sem_id; // semafor
-int shm_id; // pamiec dzielona
+int sem_id;            // semafor
+int shm_id;            // pamiec dzielona
+int sem_station_id[3]; // semafory dla 3 stanowisk kontroli
 
 // Funkcje obslugujace
 void generate_random_fan_attributes(int &age, int &team, bool &is_vip, bool &has_weapon); // generujemy atrybuty kibica
@@ -23,8 +25,12 @@ int main()
     // inicjalizacja wszystkich mechanizmow
     std::cout << "[Technician] Initializing resources...\n";
 
-    // semafory
+    // semafor glowny
     sem_id = create_semaphore(SEM_KEY, 1); // tworzymy semafor o kluczu 0x1234 i wartosci 1
+    // semafory dla stanowisk kontroli
+    sem_station_id[0] = create_semaphore(SEM_KEY_STATION_0, 3);
+    sem_station_id[1] = create_semaphore(SEM_KEY_STATION_1, 3);
+    sem_station_id[2] = create_semaphore(SEM_KEY_STATION_2, 3);
     // pamiec wspoldzielona
     shm_id = create_shared_memory(SHM_KEY, SHM_SIZE); // tworzymy pamiec wspoldzielona o kluczu 0x1235 i rozmiarze SHM_SIZE -> stala w constants.h
     void *shm_ptr = attach_shared_memory(shm_id);     // dolaczamy pamiec wspoldzielona
@@ -33,6 +39,15 @@ int main()
     stadium_data[0] = 0;                             // pod indeksem 0 trzymamy liczbe kibiców na stadionie
     for (int i = 1; i <= MAX_FANS; i++)              // pod indeksami [1, MAX_FANS] trzymamy PID-y kibicow
         stadium_data[i] = 0;                         // Inicjalizacja przestrzeni dla PID-ów kibiców
+
+    // info o stanowiskach
+    stadium_data[OFFSET_TEAM_0] = -1; // stationTeam[0]
+    stadium_data[OFFSET_TEAM_1] = -1; // stationTeam[1]
+    stadium_data[OFFSET_TEAM_2] = -1; // stationTeam[2]
+    // info o miejsach przy danym stanowisku
+    stadium_data[OFFSET_COUNT_0] = 0; // stationCount[0]
+    stadium_data[OFFSET_COUNT_1] = 0; // stationCount[1]
+    stadium_data[OFFSET_COUNT_2] = 0; // stationCount[2]
 
     std::cout << "[Technician] Resources initialized successfully.\n\n";
     // zakonczenie inicjalizacji
@@ -49,6 +64,9 @@ int main()
     detach_shared_memory(shm_ptr);
     remove_shared_memory(shm_id);
     remove_semaphore(sem_id);
+    // remove_semaphore(sem_station_id[0]);
+    // remove_semaphore(sem_station_id[1]);
+    // remove_semaphore(sem_station_id[2]);
 
     return 0;
 }

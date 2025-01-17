@@ -30,7 +30,7 @@ manager: $(BUILD_DIR)/manager.o $(BUILD_DIR)/utils/ipc_utils.o
 	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $^
 
 technician: $(BUILD_DIR)/technician.o $(BUILD_DIR)/utils/ipc_utils.o
-	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $^
+	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $^ -pthread
 
 fan: $(BUILD_DIR)/fan.o $(BUILD_DIR)/utils/ipc_utils.o
 	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $^ -pthread
