@@ -1,86 +1,97 @@
+// ipc_utils.cpp - Zaktualizowana wersja
 #include "../../include/ipc_utils.h"
 #include <stdio.h>
 #include <errno.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
+#include <sys/shm.h>
+#include <sys/msg.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-// Semafory
-int create_semaphore(key_t key, int initial_value)
+// Tworzenie zbioru semaforów
+int create_semaphore(key_t key, int num_semaphores, int initial_value)
 {
-    // Próba utworzenia semafora
-    int sem_id = semget(key, 1, IPC_CREAT | IPC_EXCL | 0600); // key, nsems, flg + minimalne prawa
+    int sem_id = semget(key, num_semaphores, IPC_CREAT | IPC_EXCL | 0600);
     if (sem_id == -1)
     {
-        // Jeśli semafor już istnieje, otwórz go
         if (errno == EEXIST)
         {
-            sem_id = semget(key, 1, 0); // Otwórz istniejący semafor
+            sem_id = semget(key, num_semaphores, 0);
             if (sem_id == -1)
             {
-                perror("Failed to open existing semaphore");
+                perror("Failed to open existing semaphore set");
                 return -1;
             }
-            return sem_id; // Zwróć ID istniejącego semafora
+            return sem_id;
         }
         else
         {
-            perror("Failed to create semaphore");
+            perror("Failed to create semaphore set");
             return -1;
         }
     }
 
-    // Jeśli semafor został właśnie utworzony, ustaw jego wartość
-    if (semctl(sem_id, 0, SETVAL, initial_value) == -1) // id, nsem, polecenie, wartosc
+    // Inicjalizacja semaforów w zestawie
+    for (int i = 0; i < num_semaphores; ++i)
     {
-        perror("Failed to initialize semaphore");
-        remove_semaphore(sem_id); // Usuń niedziałający semafor
-        return -1;
+        if (semctl(sem_id, i, SETVAL, initial_value) == -1)
+        {
+            perror("Failed to initialize semaphore in set");
+            remove_semaphore(sem_id);
+            return -1;
+        }
     }
-    return sem_id; // Zwróć ID semafora
+    return sem_id;
 }
 
+// Usuwanie zbioru semaforów
 void remove_semaphore(int sem_id)
 {
-    if (semctl(sem_id, 0, IPC_RMID) == -1) // flaga usuwajaca semafor
+    if (semctl(sem_id, 0, IPC_RMID) == -1)
     {
-        perror("Failed to remove semaphore");
+        perror("Failed to remove semaphore set");
     }
 }
 
-void semaphore_wait(int sem_id)
+// Operacje na semaforach w zestawie
+void semaphore_wait(int sem_id, int sem_num)
 {
-    struct sembuf op = {0, -1, 0}; // sem_num, sem_op, sem_flg, -1 bo dekrementacja i nie uzywamy dodatkowej flagi
+    struct sembuf op = {sem_num, -1, SEM_UNDO};
     if (semop(sem_id, &op, 1) == -1)
     {
         perror("Failed to wait on semaphore");
     }
 }
 
-void semaphore_signal(int sem_id)
+void semaphore_signal(int sem_id, int sem_num)
 {
-    struct sembuf op = {0, 1, 0}; // to samo, 1 bo inkrementacja
+    struct sembuf op = {sem_num, 1, SEM_UNDO};
     if (semop(sem_id, &op, 1) == -1)
     {
         perror("Failed to signal semaphore");
     }
 }
 
-int semaphore_trywait(int sem_id)
+int semaphore_trywait(int sem_id, int sem_num)
 {
-    struct sembuf op = {0, -1, IPC_NOWAIT}; // sem_num, sem_op, sem_flg, -1 bo dekrementacja i flaga non-blocking
+    struct sembuf op = {sem_num, -1, IPC_NOWAIT | SEM_UNDO};
     int ret;
-    if (ret = semop(sem_id, &op, 1) == -1)
+    if ((ret = semop(sem_id, &op, 1)) == -1)
     {
         if (errno == EAGAIN)
         {
-            fprintf(stderr, "Semaphore is unavailable (non-blocking trywait failed).\n");
-            return 0; // nie udalo sie od razu zajac semafora
+            fprintf(stderr, "Semaphore %d is unavailable (non-blocking trywait failed).\n", sem_num);
+            return 0;
         }
         else
         {
             perror("Failed to perform semaphore trywait");
-            return -1; // blad
+            return -1;
         }
     }
-    return ret; // udalo sie zajac semafor i zmniejszyc wartosc
+    return ret;
 }
 
 // Pamięć współdzielona
@@ -97,7 +108,7 @@ int create_shared_memory(key_t key, size_t size)
 
 void *attach_shared_memory(int shm_id)
 {
-    void *shm_ptr = shmat(shm_id, NULL, 0); // dolaczenie segmentu do pamieci adresowej procesu
+    void *shm_ptr = shmat(shm_id, NULL, 0);
     if (shm_ptr == (void *)-1)
     {
         perror("Failed to attach shared memory");
@@ -106,7 +117,7 @@ void *attach_shared_memory(int shm_id)
     return shm_ptr;
 }
 
-void detach_shared_memory(void *shm_ptr) // odlaczenie segmentu pamieci od procesu
+void detach_shared_memory(void *shm_ptr)
 {
     if (shmdt(shm_ptr) == -1)
     {
@@ -114,7 +125,7 @@ void detach_shared_memory(void *shm_ptr) // odlaczenie segmentu pamieci od proce
     }
 }
 
-void remove_shared_memory(int shm_id) // usuwamy pamiec wspoldzielona
+void remove_shared_memory(int shm_id)
 {
     if (shmctl(shm_id, IPC_RMID, NULL) == -1)
     {
@@ -125,7 +136,7 @@ void remove_shared_memory(int shm_id) // usuwamy pamiec wspoldzielona
 // Kolejki komunikatów
 int create_message_queue(key_t key)
 {
-    int msg_id = msgget(key, IPC_CREAT | 0600); // key, flg + minimalne prawa dostepu
+    int msg_id = msgget(key, IPC_CREAT | 0600);
     if (msg_id == -1)
     {
         perror("Failed to create message queue");
@@ -136,7 +147,7 @@ int create_message_queue(key_t key)
 
 void remove_message_queue(int msg_id)
 {
-    if (msgctl(msg_id, IPC_RMID, NULL) == -1) // id, operacja, sterowanie - u mnie i tak NULL
+    if (msgctl(msg_id, IPC_RMID, NULL) == -1)
     {
         perror("Failed to remove message queue");
     }

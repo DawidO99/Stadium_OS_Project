@@ -1,7 +1,7 @@
-#define MAX_FANS 100 // maksymalna liczba kibicow
-#define SHM_SIZE 1024   // Rozmiar pamięci współdzielonej
-#define SHM_KEY 0x1235  // Klucz pamięci współdzielonej
-#define SEM_KEY 0x1234  // Klucz semafora glownego
+#define MAX_FANS 100                           // maksymalna liczba kibicow
+#define SHM_SIZE sizeof(int) * (MAX_FANS + 10) // Rozmiar pamięci współdzielonej
+#define SHM_KEY 0x1235                         // Klucz pamięci współdzielonej
+#define SEM_KEY 0x1234                         // Klucz semafora glownego
 
 // klucze semaforow dla stanowisk kontrolnych
 #define SEM_KEY_STATION_0 0x2000

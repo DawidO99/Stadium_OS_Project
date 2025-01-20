@@ -8,11 +8,11 @@
 #include <stddef.h>
 
 // Semafory
-int create_semaphore(key_t key, int initial_value);
+int create_semaphore(key_t key, int num_semaphores, int initial_value);
 void remove_semaphore(int sem_id);
-void semaphore_wait(int sem_id);   // Procedura P - opuszczenie semafora (blokuje się, jeśli s==0) - "s--"
-void semaphore_signal(int sem_id); // Procedura V - podniesienie semafora (odblokowuje dostep) - "s++"
-int semaphore_trywait(int sem_id); // Procedura P z IPC_NOWAIT
+void semaphore_wait(int sem_id, int sem_num);   // Procedura P - opuszczenie semafora (blokuje się, jeśli s==0) - "s--"
+void semaphore_signal(int sem_id, int sem_num); // Procedura V - podniesienie semafora (odblokowuje dostep) - "s++"
+int semaphore_trywait(int sem_id, int sem_num); // Procedura P z IPC_NOWAIT
 
 // Pamięć współdzielona
 int create_shared_memory(key_t key, size_t size);
