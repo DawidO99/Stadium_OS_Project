@@ -27,7 +27,7 @@ main: $(BUILD_DIR)/main.o $(BUILD_DIR)/utils/ipc_utils.o
 	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $^
 
 manager: $(BUILD_DIR)/manager.o $(BUILD_DIR)/utils/ipc_utils.o
-	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $^
+	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $^ -pthread
 
 technician: $(BUILD_DIR)/technician.o $(BUILD_DIR)/utils/ipc_utils.o
 	$(CXX) $(CXXFLAGS) -o $(BUILD_DIR)/$@ $^ -pthread

@@ -1,4 +1,3 @@
-// ipc_utils.cpp - Zaktualizowana wersja
 #include "../../include/ipc_utils.h"
 #include <stdio.h>
 #include <errno.h>
@@ -151,4 +150,16 @@ void remove_message_queue(int msg_id)
     {
         perror("Failed to remove message queue");
     }
+}
+
+// ganerowanie klucza
+key_t generate_key(const char *path, int id)
+{
+    key_t key = ftok(path, id);
+    if (key == -1)
+    {
+        perror("[KeyGen] Failed to generate key using ftok");
+        exit(EXIT_FAILURE);
+    }
+    return key;
 }

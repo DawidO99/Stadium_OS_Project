@@ -24,4 +24,7 @@ void remove_shared_memory(int shm_id);
 int create_message_queue(key_t key);
 void remove_message_queue(int msg_id);
 
+// generowanie klucza
+key_t generate_key(const char *path, int id);
+
 #endif
