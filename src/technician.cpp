@@ -9,6 +9,7 @@
 #include <ctime>
 #include <semaphore.h>
 #include <thread>
+#include <sys/wait.h>
 
 // log
 #include <csignal>
@@ -138,6 +139,19 @@ void spawn_fan_process(const char *fan_program_path)
     int age, team;
     bool is_vip, has_weapon;
     generate_random_fan_attributes(age, team, is_vip, has_weapon);
+    // zbieranie procesow zombie
+    std::thread([]
+                {
+    while (true) {
+        int status;
+        pid_t pid = waitpid(-1, &status, WNOHANG); // Zbieramy zakończone procesy
+        // if (pid > 0) {
+        //     std::cout << "[Technician] Collected zombie process with PID: " << pid << std::endl;
+        // } else {
+        //     std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Czekamy na nowe procesy
+        // }
+    } })
+        .detach(); // Uruchamiamy wątek jako niezależny
 
     pid_t pid = fork();
     if (pid == -1)
