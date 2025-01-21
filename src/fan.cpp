@@ -54,6 +54,16 @@ int main(int argc, char *argv[])
     if (stadium_data[0] >= MAX_FANS)
     {
         std::cout << "[Fan] Stadium is full. Number of Fans: " << stadium_data[0] << ".\n";
+        stadium_data[OFFSET_COUNT_2 + 2] = 0; // nie wpuszczamy wiecej fanow
+        // pid_t technician_pid = stadium_data[OFFSET_COUNT_2 + 1];
+        // if (kill(technician_pid, SIGTERM) == 0)
+        // {
+        //     std::cout << "[Fan] Stadium is full. Sent SIGTERM to Technician.\n";
+        // }
+        // else
+        // {
+        //     perror("[Fan] Failed to send SIGTERM to Technician");
+        // }
         exit(0); // Wyjdź z procesu fana
     }
     semaphore_signal(sem_id, 0); // Odblokowujemy semafor
@@ -64,6 +74,7 @@ int main(int argc, char *argv[])
         if (stadium_data[0] >= MAX_FANS - 1)
         {
             std::cout << "[Fan] Stadium is full. Number of Fans : " << stadium_data[0] << "." << std::endl;
+            stadium_data[OFFSET_COUNT_2 + 2] = 0;
             exit(0); // jak nie ma miejsc to kibic nie wchodzi, wiec go wyrzucamy
         }
         semaphore_signal(sem_id, 0); // mozemy odblokowacs
@@ -156,15 +167,6 @@ int main(int argc, char *argv[])
     if (stadium_data[OFFSET_COUNT_2 + 2] == 0 || stadium_data[0] >= MAX_FANS) // kontrola czy nie wyszedl signal lub nie przekroczylismy max_fans
     {
         std::cout << "[Fan] Stadium is not accepting new fans. Exiting.\n";
-        // pid_t technician_pid = stadium_data[OFFSET_COUNT_2 + 1];
-        // if (kill(technician_pid, SIGTERM) == 0)
-        // {
-        //     std::cout << "[Fan] Stadium is full. Sent SIGTERM to Technician.\n";
-        // }
-        // else
-        // {
-        //     perror("[Fan] Failed to send SIGTERM to Technician");
-        // }
         exit(0);
     }
 

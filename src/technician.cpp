@@ -10,6 +10,13 @@
 #include <semaphore.h>
 #include <thread>
 
+// log
+#include <csignal>
+#include <iostream>
+#include <execinfo.h>
+#include <cstdlib>
+// log
+
 // Zasoby IPC
 int sem_id;                  // Semafor główny
 int shm_id;                  // Pamięć dzielona
@@ -20,8 +27,35 @@ void generate_random_fan_attributes(int &age, int &team, bool &is_vip, bool &has
 void spawn_fan_process(const char *fan_program_path);                                     // generowanie kibicow forkiem
 void signal_handler(int sig);                                                             // handler dla sygnalow
 
+// log
+//  Handler dla SIGSEGV
+void sigsegv_handler(int sig)
+{
+    void *array[10];
+    size_t size;
+
+    // Pobranie stack trace
+    size = backtrace(array, 10);
+    std::cerr << "[ERROR] Segmentation fault detected (signal " << sig << ").\n";
+    std::cerr << "[DEBUG] Stack trace:\n";
+
+    // Wydrukowanie stack trace
+    char **symbols = backtrace_symbols(array, size);
+    for (size_t i = 0; i < size; i++)
+    {
+        std::cerr << symbols[i] << std::endl;
+    }
+    free(symbols);
+
+    std::_Exit(1); // Bezpieczne zakończenie programu
+}
+// log
 int main()
 {
+    // log
+    //  Rejestracja handlera dla SIGSEGV
+    std::signal(SIGSEGV, sigsegv_handler);
+    // log
     srand(time(NULL)); // Do generowania atrybutów
 
     std::cout << "[Technician] Initializing resources...\n";
@@ -73,7 +107,7 @@ int main()
         sleep(1); // Opóźnienie między generowaniem kibiców
     }
 
-    // Czyszczenie zasobów
+    // Czyszczenie zasobów, nie wykona sie raczej
     detach_shared_memory(shm_ptr);
     stadium_data[0] = 0; // Zerujemy liczbę kibiców
     for (int i = 1; i <= MAX_FANS; ++i)
@@ -111,6 +145,7 @@ void spawn_fan_process(const char *fan_program_path)
         perror("[Technician] Failed to fork");
         return;
     }
+
     if (pid == 0)
     {
         char age_str[10], team_str[10], is_vip_str[10], has_weapon_str[10];
@@ -118,7 +153,6 @@ void spawn_fan_process(const char *fan_program_path)
         snprintf(team_str, sizeof(team_str), "%d", team);
         snprintf(is_vip_str, sizeof(is_vip_str), "%d", is_vip);
         snprintf(has_weapon_str, sizeof(has_weapon_str), "%d", has_weapon);
-
         execl(fan_program_path, fan_program_path, age_str, team_str, is_vip_str, has_weapon_str, NULL);
         perror("[Technician] Failed to exec fan process");
         exit(1);

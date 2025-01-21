@@ -12,6 +12,7 @@ void print_menu();
 
 int main()
 {
+
     // Otwórz pamięć współdzieloną
     int shm_id = create_shared_memory(SHM_KEY, SHM_SIZE);
     int *stadium_data = static_cast<int *>(attach_shared_memory(shm_id));
