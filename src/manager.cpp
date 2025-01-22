@@ -7,7 +7,6 @@
 #include <csignal>
 
 // Funkcje pomocnicze
-int get_technician_pid(int *stadium_data); // sciagamy pid pracownika techninczego do wysylania sygnalow
 void print_menu();
 
 int main()
@@ -24,8 +23,7 @@ int main()
     }
     stadium_data[OFFSET_COUNT_2 + 3] = getpid(); // pobieramy pid Managera, zeby kierownik mogl poinformowac o zakonczeniu ewakuacji
 
-    // Pobierz PID Technician
-    int technician_pid = get_technician_pid(stadium_data);
+    int technician_pid = stadium_data[OFFSET_COUNT_2 + 1];     // Pobierz PID Technician
     if (technician_pid <= 0)
     {
         std::cerr << "[Manager] Invalid Technician PID.\n";
@@ -77,12 +75,6 @@ int main()
     // Odłącz pamięć współdzieloną
     detach_shared_memory(stadium_data);
     return 0;
-}
-
-// Funkcja pobierająca PID Technician z pamięci współdzielonej
-int get_technician_pid(int *stadium_data)
-{
-    return stadium_data[OFFSET_COUNT_2 + 1]; // PID Technician na końcu tablicy
 }
 
 void print_menu()

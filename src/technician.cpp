@@ -26,9 +26,15 @@ int main()
 {
     srand(time(NULL)); // Do generowania atrybutów
 
-    std::cout << "Enter the number of fans trying to enter the stadium : " << std::endl;
-    int n;
-    std::cin >> n;
+    std::cout << "[Technician] Enter the number of fans trying to enter the stadium : " << std::endl;
+    int n = -1;
+    std::cin >> n; //uzytkownik podaje "z palca" liczbe procesow do wygenerowania
+    while(n>250000 || n==-1)
+    {
+        std::cout << "[Technician] Allowed process limit exceeded. Please try again" << std::endl;
+        std::cin >> n;  //na torusie ulimit = 257104, ale zaokraglimy do 250k
+    }
+        
 
     std::cout << "[Technician] Initializing resources...\n";
 
@@ -86,7 +92,7 @@ int main()
         //sleep(1); // Opóźnienie między generowaniem kibiców
     }
 
-    std::cout << "All fans entered the stadium." << std::endl;
+    std::cout << "[Technician] All fans entered the stadium." << std::endl;
     kill(getpid(), SIGTERM);
 
     return 0;
@@ -179,7 +185,7 @@ void signal_handler(int sig)
             }
         }
         stadium_data[0] -= stadium_data[OFFSET_COUNT_2 + 4]; // wiemy, ze procesy z dziecmi wyszly, ale te dzieci tez trzeba odjac
-        std::cout << "{Technician] Number of fans in the stadium : " << stadium_data[0] << std::endl;
+        std::cout << "[Technician] Number of fans in the stadium : " << stadium_data[0] << std::endl;
         semaphore_signal(sem_id, 0);
 
         // Oczekiwanie na zakończenie procesów potomnych
