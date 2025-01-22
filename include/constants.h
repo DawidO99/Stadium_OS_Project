@@ -1,6 +1,6 @@
 #include "ipc_utils.h"
 
-#define MAX_FANS 20                                             // maksymalna liczba kibicow
+#define MAX_FANS 1000                                             // maksymalna liczba kibicow
 #define SHM_SIZE sizeof(int) * (MAX_FANS + 100)                 // Rozmiar pamięci współdzielonej
 const key_t SHM_KEY = generate_key("/etc/passwd", 1);           // Klucz pamięci współdzielonej
 const key_t SEM_KEY = generate_key("/etc/passwd", 2);           // Klucz semafora glownego

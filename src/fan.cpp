@@ -117,11 +117,17 @@ int main(int argc, char *argv[])
                     std::cout << "[Fan] PID: " << attributes.PID
                               << " entered station " << i
                               << " for control.\n";
-                    std::this_thread::sleep_for(std::chrono::seconds(2)); // symulacja kontroli
+                    //std::this_thread::sleep_for(std::chrono::seconds(2)); // symulacja kontroli
 
                     if (attributes.has_weapon)
                     {
                         std::cout << "[Fan] Weapon detected. Security intervening.\n";
+                        semaphore_wait(sem_id, 0);
+                        stadium_data[OFFSET_COUNT_0 + i]--;        // kibic schodzi ze stacji
+                        if (stadium_data[OFFSET_COUNT_0 + i] == 0) // jak byl ostatnim kibicem to stacja znowu wolna
+                            stadium_data[OFFSET_TEAM_0 + i] = -1;
+                        semaphore_signal(sem_id, 0);
+                        semaphore_signal(sem_station_id, i);
                         exit(0);
                     }
 
@@ -151,7 +157,7 @@ int main(int argc, char *argv[])
                 std::cout << "[Fan] Frustrated and leaving...\n";
                 exit(0);
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(500)); // Opoznienie w trakcie czekania na wolne miejsce
+            //std::this_thread::sleep_for(std::chrono::milliseconds(500)); // Opoznienie w trakcie czekania na wolne miejsce
         }
     }
 
@@ -172,3 +178,4 @@ int main(int argc, char *argv[])
     semaphore_signal(sem_id, 0);
     return 0;
 }
+

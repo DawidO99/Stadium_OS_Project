@@ -12,13 +12,6 @@
 #include <thread>
 #include <sys/wait.h>
 
-// log
-#include <csignal>
-#include <iostream>
-#include <execinfo.h>
-#include <cstdlib>
-// log
-
 // Zasoby IPC
 int sem_id;                  // Semafor główny
 int shm_id;                  // Pamięć dzielona
@@ -29,35 +22,8 @@ void generate_random_fan_attributes(int &age, int &team, bool &is_vip, bool &has
 void spawn_fan_process(const char *fan_program_path);                                     // generowanie kibicow forkiem
 void signal_handler(int sig);                                                             // handler dla sygnalow
 
-// log
-//  Handler dla SIGSEGV
-void sigsegv_handler(int sig)
-{
-    void *array[10];
-    size_t size;
-
-    // Pobranie stack trace
-    size = backtrace(array, 10);
-    std::cerr << "[ERROR] Segmentation fault detected (signal " << sig << ").\n";
-    std::cerr << "[DEBUG] Stack trace:\n";
-
-    // Wydrukowanie stack trace
-    char **symbols = backtrace_symbols(array, size);
-    for (size_t i = 0; i < size; i++)
-    {
-        std::cerr << symbols[i] << std::endl;
-    }
-    free(symbols);
-
-    std::_Exit(1); // Bezpieczne zakończenie programu
-}
-// log
 int main()
 {
-    // log
-    //  Rejestracja handlera dla SIGSEGV
-    std::signal(SIGSEGV, sigsegv_handler);
-    // log
     srand(time(NULL)); // Do generowania atrybutów
 
     std::cout << "[Technician] Initializing resources...\n";
@@ -101,12 +67,12 @@ int main()
     // Tworzenie procesów kibiców
     const char *fan_program_path = "./build/fan";
     bool stop=false;
-    for (int i = 0; i < 30 && !stop; i++) //TODO
+    for (int i = 0; i < 50 && !stop; i++) //TODO
     {
         while (stadium_data[OFFSET_COUNT_2 + 2] != 1)
         {
             std::cout << "[Technician] Fans cannot enter. Please wait" << std::endl;
-            sleep(2);
+            //sleep(2);
             if(stadium_data[0]>=MAX_FANS)
             {
                 stop=true;
@@ -115,7 +81,7 @@ int main()
         }
         if (stop) break; // Kończy pętlę for
         spawn_fan_process(fan_program_path);
-        sleep(1); // Opóźnienie między generowaniem kibiców
+        //sleep(1); // Opóźnienie między generowaniem kibiców
     }
 
     std::cout << "All fans entered the stadium." << std::endl;
@@ -213,6 +179,16 @@ void signal_handler(int sig)
         }
         stadium_data[0] -= stadium_data[OFFSET_COUNT_2 + 4]; // wiemy, ze procesy z dziecmi wyszly, ale te dzieci tez trzeba odjac
         std::cout << "{Technician] Number of fans in the stadium : " << stadium_data[0] << std::endl;
+        semaphore_signal(sem_id, 0);
+
+        // Oczekiwanie na zakończenie procesów potomnych
+        int status;
+        pid_t pid;
+        while ((pid = waitpid(-1, &status, 0)) > 0) {}
+        if (pid == -1 && errno == ECHILD) 
+            perror("[Technician] No more fan processes to wait for");
+    
+        semaphore_wait(sem_id, 0);
         if (stadium_data[0] == 0)
         {
             pid_t manager_pid = stadium_data[OFFSET_COUNT_2 + 3];
@@ -222,7 +198,6 @@ void signal_handler(int sig)
                 perror("[Technician] Failed to inform manager");
         }
         semaphore_signal(sem_id, 0);
-        std::this_thread::sleep_for(std::chrono::seconds(3));
         std::cout << "[Technician] Cleaning up shared resources and semaphores...\n";
         detach_shared_memory(stadium_data); // Odłącz pamięć współdzieloną
         remove_shared_memory(shm_id);       // Usuń pamięć współdzieloną
