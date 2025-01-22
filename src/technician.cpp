@@ -1,3 +1,4 @@
+
 #include "../include/ipc_utils.h"
 #include "../include/constants.h"
 #include <signal.h>
@@ -61,6 +62,8 @@ int main()
 
     std::cout << "[Technician] Initializing resources...\n";
 
+    std::signal(SIGALRM, SIG_IGN); // Ignorowanie SIGALRM
+
     // Rejestracja handlera sygnałów
     std::signal(SIGUSR1, signal_handler);
     std::signal(SIGUSR2, signal_handler);
@@ -97,31 +100,26 @@ int main()
 
     // Tworzenie procesów kibiców
     const char *fan_program_path = "./build/fan";
-    for (int i = 0; i < MAX_FANS; i++)
+    bool stop=false;
+    for (int i = 0; i < 30 && !stop; i++) //TODO
     {
         while (stadium_data[OFFSET_COUNT_2 + 2] != 1)
         {
             std::cout << "[Technician] Fans cannot enter. Please wait" << std::endl;
             sleep(2);
+            if(stadium_data[0]>=MAX_FANS)
+            {
+                stop=true;
+                break;
+            }      
         }
+        if (stop) break; // Kończy pętlę for
         spawn_fan_process(fan_program_path);
         sleep(1); // Opóźnienie między generowaniem kibiców
     }
 
-    // Czyszczenie zasobów, nie wykona sie raczej
-    detach_shared_memory(shm_ptr);
-    stadium_data[0] = 0; // Zerujemy liczbę kibiców
-    for (int i = 1; i <= MAX_FANS; ++i)
-        stadium_data[i] = 0; // Czyszczenie PID-ów
-    for (int i = 0; i < 3; ++i)
-    {
-        stadium_data[OFFSET_TEAM_0 + i] = -1;
-        stadium_data[OFFSET_COUNT_0 + i] = 0;
-    }
-    stadium_data[OFFSET_COUNT_2 + 1] = 0; // wyzerowanie PID-u techniciana
-    remove_shared_memory(shm_id);
-    remove_semaphore(sem_id);
-    remove_semaphore(sem_station_id);
+    std::cout << "All fans entered the stadium." << std::endl;
+    kill(getpid(), SIGTERM);
 
     return 0;
 }
@@ -145,11 +143,6 @@ void spawn_fan_process(const char *fan_program_path)
     while (true) {
         int status;
         pid_t pid = waitpid(-1, &status, WNOHANG); // Zbieramy zakończone procesy
-        // if (pid > 0) {
-        //     std::cout << "[Technician] Collected zombie process with PID: " << pid << std::endl;
-        // } else {
-        //     std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Czekamy na nowe procesy
-        // }
     } })
         .detach(); // Uruchamiamy wątek jako niezależny
 

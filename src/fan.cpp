@@ -55,15 +55,6 @@ int main(int argc, char *argv[])
     {
         std::cout << "[Fan] Stadium is full. Number of Fans: " << stadium_data[0] << ".\n";
         stadium_data[OFFSET_COUNT_2 + 2] = 0; // nie wpuszczamy wiecej fanow
-        // pid_t technician_pid = stadium_data[OFFSET_COUNT_2 + 1];
-        // if (kill(technician_pid, SIGTERM) == 0)
-        // {
-        //     std::cout << "[Fan] Stadium is full. Sent SIGTERM to Technician.\n";
-        // }
-        // else
-        // {
-        //     perror("[Fan] Failed to send SIGTERM to Technician");
-        // }
         exit(0); // Wyjdź z procesu fana
     }
     semaphore_signal(sem_id, 0); // Odblokowujemy semafor
@@ -89,10 +80,10 @@ int main(int argc, char *argv[])
     if (attributes.is_vip)
     {
         semaphore_wait(sem_id, 0);
+        stadium_data[stadium_data[0] + 1] = getpid(); // Zapisujemy PID procesu w pamięci współdzielonej
         stadium_data[0] += has_child ? 2 : 1;
         std::cout << (has_child ? "[Fan + Child]" : "[Fan]")
                   << " VIP with PID : " << attributes.PID << " entering stadium. Current fans: " << stadium_data[0] << "\n";
-        stadium_data[stadium_data[0] + 1] = getpid(); // Zapisujemy PID procesu w pamięci współdzielonej
         semaphore_signal(sem_id, 0);
         if (has_child)
             stadium_data[OFFSET_COUNT_2 + 4]++; // zwiekszamy liczbe dzieci na stadionie
@@ -171,13 +162,13 @@ int main(int argc, char *argv[])
     }
 
     semaphore_wait(sem_id, 0);
+    stadium_data[stadium_data[0] + 1] = getpid(); // Zapisujemy PID procesu w pamięci współdzielonej
     stadium_data[0] += has_child ? 2 : 1;
     std::cout << (has_child ? "[Fan + Child]" : "[Fan]")
               << " Regular fan with PID : " << attributes.PID << " entering stadium. Current fans: " << stadium_data[0] << "\n";
     if (has_child)
         stadium_data[OFFSET_COUNT_2 + 4]++; // zwiekszamy liczbe dzieci
     has_child = false;
-    stadium_data[stadium_data[0] + 1] = getpid(); // Zapisujemy PID procesu w pamięci współdzielonej
     semaphore_signal(sem_id, 0);
     return 0;
 }
