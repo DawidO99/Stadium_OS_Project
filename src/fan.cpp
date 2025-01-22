@@ -108,9 +108,7 @@ int main(int argc, char *argv[])
                 if ((current_team == -1 || current_team == attributes.team) && current_count < 3) // jezeli stacja jest pusta lub jest zespol danego procesu
                 {
                     if (current_team == -1) // jak stacja byla pusta to przypisujemy druzynie
-                    {
                         stadium_data[OFFSET_TEAM_0 + i] = attributes.team;
-                    }
                     stadium_data[OFFSET_COUNT_0 + i] = current_count + 1;
                     semaphore_signal(sem_id, 0);
 

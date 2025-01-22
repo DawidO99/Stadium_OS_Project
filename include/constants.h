@@ -13,4 +13,4 @@ static const int OFFSET_TEAM_2 = MAX_FANS + 3;  // stationTeam[2]
 static const int OFFSET_COUNT_0 = MAX_FANS + 4; // stationCount[0]
 static const int OFFSET_COUNT_1 = MAX_FANS + 5; // stationCount[1]
 static const int OFFSET_COUNT_2 = MAX_FANS + 6; // stationCount[2]
-                                                // reszta offsetow jest wzgledem OFFSET_COUNT_2 i jest odpowiednio wykomentowana w kodzie
+// reszta offsetow jest wzgledem OFFSET_COUNT_2 i jest odpowiednio wykomentowana w kodzie

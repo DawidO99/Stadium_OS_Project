@@ -26,6 +26,10 @@ int main()
 {
     srand(time(NULL)); // Do generowania atrybutów
 
+    std::cout << "Enter the number of fans trying to enter the stadium : " << std::endl;
+    int n;
+    std::cin >> n;
+
     std::cout << "[Technician] Initializing resources...\n";
 
     std::signal(SIGALRM, SIG_IGN); // Ignorowanie SIGALRM
@@ -47,9 +51,7 @@ int main()
     stadium_data = static_cast<int *>(shm_ptr);
     stadium_data[0] = 0; // Liczba kibiców na stadionie
     for (int i = 1; i <= MAX_FANS; i++)
-    {
         stadium_data[i] = 0; // PID-y kibiców
-    }
     stadium_data[OFFSET_TEAM_0] = -1; // StationTeam[0]
     stadium_data[OFFSET_TEAM_1] = -1; // StationTeam[1]
     stadium_data[OFFSET_TEAM_2] = -1; // StationTeam[2]
@@ -59,7 +61,7 @@ int main()
 
     stadium_data[OFFSET_COUNT_2 + 1] = getpid(); // zapisanie PID-u technician dla kierownika (manager)
     stadium_data[OFFSET_COUNT_2 + 2] = 1;        // flaga do sygnalow
-
+    //OFFSET_COUNT_2 + 3 jest wypelniony w manager.cpp
     stadium_data[OFFSET_COUNT_2 + 4] = 0; // liczba dzieci na stadionie
 
     std::cout << "[Technician] Resources initialized successfully.\n";
@@ -67,7 +69,7 @@ int main()
     // Tworzenie procesów kibiców
     const char *fan_program_path = "./build/fan";
     bool stop=false;
-    for (int i = 0; i < 50 && !stop; i++) //TODO
+    for (int i = 0; i < n && !stop; i++)
     {
         while (stadium_data[OFFSET_COUNT_2 + 2] != 1)
         {
@@ -94,7 +96,7 @@ void generate_random_fan_attributes(int &age, int &team, bool &is_vip, bool &has
 {
     age = rand() % 60 + 10;          // Wiek od 10 do 70 lat
     team = rand() % 2;               // Drużyna 0 lub 1
-    is_vip = (rand() % 10 == 0);     // 10% szans na VIP-a
+    is_vip = (rand() % 200 == 0);     // 0.5% szans na VIP-a
     has_weapon = (rand() % 20 == 0); // 5% szans na broń
 }
 
@@ -165,7 +167,6 @@ void signal_handler(int sig)
             semaphore_wait(sem_station_id, i); // Zablokowanie semaforów dla stanowisk kontroli
 
         std::cout << "[Technician] Received SIGTERM: Evacuating fans.\n";
-        // Przerwij wszystkich fanów z pamięci współdzielonej
         semaphore_wait(sem_id, 0);
         for (int i = 1; i <= MAX_FANS; i++)
         {

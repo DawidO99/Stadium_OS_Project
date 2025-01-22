@@ -132,26 +132,6 @@ void remove_shared_memory(int shm_id)
     }
 }
 
-// Kolejki komunikatów
-int create_message_queue(key_t key)
-{
-    int msg_id = msgget(key, IPC_CREAT | 0600);
-    if (msg_id == -1)
-    {
-        perror("Failed to create message queue");
-        return -1;
-    }
-    return msg_id;
-}
-
-void remove_message_queue(int msg_id)
-{
-    if (msgctl(msg_id, IPC_RMID, NULL) == -1)
-    {
-        perror("Failed to remove message queue");
-    }
-}
-
 // ganerowanie klucza
 key_t generate_key(const char *path, int id)
 {

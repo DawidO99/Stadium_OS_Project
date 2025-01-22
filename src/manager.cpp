@@ -7,7 +7,7 @@
 #include <csignal>
 
 // Funkcje pomocnicze
-int get_technician_pid(int *stadium_data); // sciagamy pid praxownika techninczego do wysylania sygnalow
+int get_technician_pid(int *stadium_data); // sciagamy pid pracownika techninczego do wysylania sygnalow
 void print_menu();
 
 int main()
@@ -46,35 +46,23 @@ int main()
         {
         case 1: // Wstrzymanie wpuszczania kibicow
             if (kill(technician_pid, SIGUSR1) == 0)
-            {
                 std::cout << "[Manager] Sent SIGUSR1 to Technician.\n";
-            }
             else
-            {
                 perror("[Manager] Failed to send SIGUSR1");
-            }
             break;
 
         case 2: // Wznowienie wpuszczania kibicow
             if (kill(technician_pid, SIGUSR2) == 0)
-            {
                 std::cout << "[Manager] Sent SIGUSR2 to Technician.\n";
-            }
             else
-            {
                 perror("[Manager] Failed to send SIGUSR2");
-            }
             break;
 
         case 3: // Ewakuacja/Zakonczenie programu
             if (kill(technician_pid, SIGTERM) == 0)
-            {
                 std::cout << "[Manager] Sent SIGTERM to Technician.\n";
-            }
             else
-            {
                 perror("[Manager] Failed to send SIGTERM");
-            }
             break;
 
         case 0: // Wyjscie z managera
